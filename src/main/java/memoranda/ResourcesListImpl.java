@@ -10,6 +10,8 @@ package main.java.memoranda;
 
 import java.util.Vector;
 
+import main.java.memoranda.interfaces.IProject;
+import main.java.memoranda.interfaces.IResourcesList;
 import main.java.memoranda.util.Util;
 
 import java.io.File;
@@ -23,40 +25,44 @@ import nu.xom.Elements;
  *
  */
 /*$Id: ResourcesListImpl.java,v 1.5 2007/03/20 06:21:46 alexeya Exp $*/
-public class ResourcesListImpl implements ResourcesList {
-    
-	private Project _project = null;
-    private Document _doc = null;
-    private Element _root = null;
+public class ResourcesListImpl implements IResourcesList {
+
+    // TASK 2-2 SMELL BETWEEN CLASSES
+    // Smell Between Classes: NotesListImpl.java, ResourcesListImpl.java, TaskListImpl.java
+    // Category: Data Clumps
+    // Reason: _project, _root & _document variables were being set up in multiple classes.
+    // Fix: Create larger class (Setup) to hold these three variables and use this class 
+    // across multiple classes to get/set the 3 variables.
+	Setup setup = new Setup();
 
     /**
      * Constructor for TaskListImpl.
      */
-    public ResourcesListImpl(Document doc, Project prj) {
-        _doc = doc;
-        _root = _doc.getRootElement();
-        _project = prj;
+    public ResourcesListImpl(Document doc, IProject prj) {
+        setup.set_doc(doc);
+        setup.set_root(setup.get_doc().getRootElement());
+        setup.set_project(prj);
     }
 
-    public ResourcesListImpl(Project prj) {
-            _root = new Element("resources-list");
-            _doc = new Document(_root);
-            _project = prj;
+    public ResourcesListImpl(IProject prj) {
+            setup.set_root(new Element("resources-list"));
+            setup.set_doc(new Document(setup.get_root()));
+            setup.set_project(prj);
     }
 
     public Vector getAllResources() {
         Vector v = new Vector();
-        Elements rs = _root.getChildElements("resource");
+        Elements rs = setup.get_root().getChildElements("resource");
         for (int i = 0; i < rs.size(); i++)
             v.add(new Resource(rs.get(i).getAttribute("path").getValue(), rs.get(i).getAttribute("isInetShortcut") != null, rs.get(i).getAttribute("isProjectFile") != null));
         return v;
     }
 
     /**
-     * @see main.java.memoranda.ResourcesList#getResource(java.lang.String)
+     * @see main.java.memoranda.interfaces.IResourcesList#getResource(java.lang.String)
      */
     public Resource getResource(String path) {
-        Elements rs = _root.getChildElements("resource");
+        Elements rs = setup.get_root().getChildElements("resource");
         for (int i = 0; i < rs.size(); i++)
             if (rs.get(i).getAttribute("path").getValue().equals(path))
                 return new Resource(rs.get(i).getAttribute("path").getValue(), rs.get(i).getAttribute("isInetShortcut") != null, rs.get(i).getAttribute("isProjectFile") != null);
@@ -75,7 +81,7 @@ public class ResourcesListImpl implements ResourcesList {
     }*/
     
     /**
-     * @see main.java.memoranda.ResourcesList#addResource(java.lang.String, boolean)
+     * @see main.java.memoranda.interfaces.IResourcesList#addResource(java.lang.String, boolean)
      */
     public void addResource(String path, boolean isInternetShortcut, boolean isProjectFile) {
         Element el = new Element("resource");
@@ -85,7 +91,7 @@ public class ResourcesListImpl implements ResourcesList {
             el.addAttribute(new Attribute("isInetShortcut", "true"));
         if (isProjectFile)
             el.addAttribute(new Attribute("isProjectFile", "true"));
-        _root.appendChild(el);
+        setup.get_root().appendChild(el);
     }
 
     public void addResource(String path) {
@@ -93,10 +99,10 @@ public class ResourcesListImpl implements ResourcesList {
     }
 
     /**
-     * @see main.java.memoranda.ResourcesList#removeResource(java.lang.String)
+     * @see main.java.memoranda.interfaces.IResourcesList#removeResource(java.lang.String)
      */
     public void removeResource(String path) {
-        Elements rs = _root.getChildElements("resource");
+        Elements rs = setup.get_root().getChildElements("resource");
         for (int i = 0; i < rs.size(); i++)
             if (rs.get(i).getAttribute("path").getValue().equals(path)) {
             	if(getResource(path).isProjectFile()) {
@@ -104,22 +110,22 @@ public class ResourcesListImpl implements ResourcesList {
             		System.out.println("[DEBUG] Removing file "+path);
                 	f.delete();
             	}
-            	_root.removeChild(rs.get(i));
+            	setup.get_root().removeChild(rs.get(i));
             }
     }
         
 
     /**
-     * @see main.java.memoranda.ResourcesList#getAllResourcesCount()
+     * @see main.java.memoranda.interfaces.IResourcesList#getAllResourcesCount()
      */
     public int getAllResourcesCount() {
-        return _root.getChildElements("resource").size();
+        return setup.get_root().getChildElements("resource").size();
     }
     /**
-     * @see main.java.memoranda.ResourcesList#getXMLContent()
+     * @see main.java.memoranda.interfaces.IResourcesList#getXMLContent()
      */
     public Document getXMLContent() {
-        return _doc;
+        return setup.get_doc();
     }
     
     /**

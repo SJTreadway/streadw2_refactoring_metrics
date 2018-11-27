@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Vector;
 
 import main.java.memoranda.date.CalendarDate;
+import main.java.memoranda.interfaces.IEvent;
 import main.java.memoranda.util.CurrentStorage;
 import main.java.memoranda.util.Util;
 
@@ -112,7 +113,7 @@ public class EventsManager {
 		return v;
 	}
 
-	public static Event createEvent(
+	public static IEvent createEvent(
 		CalendarDate date,
 		int hh,
 		int mm,
@@ -129,32 +130,31 @@ public class EventsManager {
 		return new EventImpl(el);
 	}
 
-	public static Event createRepeatableEvent(
-		int type,
-		CalendarDate startDate,
-		CalendarDate endDate,
-		int period,
-		int hh,
-		int mm,
-		String text,
-		boolean workDays) {
+	// TASK 2-1 SMELL WITHIN A CLASS
+	// Smell Within a Class: EventsManager.createRepeatableEvent method
+	// Category: Long Parameter List
+	// Reason: Method has 8 parameters. Too many parameters to pass into a function.
+	// Fix: Reduce parameters to 1 by accepting an Object with those 8 fields.
+	// Created a new Event class that is made up of the original 8 parameters.
+
+	public static IEvent createRepeatableEvent(Event event) {
 		Element el = new Element("event");
 		Element rep = _root.getFirstChildElement("repeatable");
 		if (rep == null) {
 			rep = new Element("repeatable");
 			_root.appendChild(rep);
 		}
-		el.addAttribute(new Attribute("repeat-type", String.valueOf(type)));
+		el.addAttribute(new Attribute("repeat-type", String.valueOf(event.type)));
 		el.addAttribute(new Attribute("id", Util.generateId()));
-		el.addAttribute(new Attribute("hour", String.valueOf(hh)));
-		el.addAttribute(new Attribute("min", String.valueOf(mm)));
-		el.addAttribute(new Attribute("startDate", startDate.toString()));
-		if (endDate != null)
-			el.addAttribute(new Attribute("endDate", endDate.toString()));
-		el.addAttribute(new Attribute("period", String.valueOf(period)));
+		el.addAttribute(new Attribute("hour", String.valueOf(event.hh)));
+		el.addAttribute(new Attribute("min", String.valueOf(event.mm)));
+		el.addAttribute(new Attribute("startDate", event.startDate.toString()));
+		if (event.endDate != null)
+			el.addAttribute(new Attribute("endDate", event.endDate.toString()));
+		el.addAttribute(new Attribute("period", String.valueOf(event.period)));
 		// new attribute for wrkin days - ivanrise
-		el.addAttribute(new Attribute("workingDays",String.valueOf(workDays)));
-		el.appendChild(text);
+		el.addAttribute(new Attribute("workingDays",String.valueOf(event.workDays)));
+		el.appendChild(event.text);
 		rep.appendChild(el);
 		return new EventImpl(el);
 	}
@@ -174,7 +174,7 @@ public class EventsManager {
 		Vector reps = (Vector) getRepeatableEvents();
 		Vector v = new Vector();
 		for (int i = 0; i < reps.size(); i++) {
-			Event ev = (Event) reps.get(i);
+			IEvent ev = (IEvent) reps.get(i);
 			
 			// --- ivanrise
 			// ignore this event if it's a 'only working days' event and today is weekend.
@@ -224,20 +224,22 @@ public class EventsManager {
 		return getEventsForDate(CalendarDate.today());
 	}
 
-	public static Event getEvent(CalendarDate date, int hh, int mm) {
+	public static IEvent getEvent(CalendarDate date, int hh, int mm) {
 		Day d = getDay(date);
 		if (d == null)
 			return null;
 		Elements els = d.getElement().getChildElements("event");
 		for (int i = 0; i < els.size(); i++) {
 			Element el = els.get(i);
-			if ((new Integer(el.getAttribute("hour").getValue()).intValue()
-				== hh)
-				&& (new Integer(el.getAttribute("min").getValue()).intValue()
-					== mm))
+			if (checkHHMM(el, hh, mm))
 				return new EventImpl(el);
 		}
 		return null;
+	}
+	
+	private static boolean checkHHMM(Element el, int hh, int mm) {
+	    return new Integer(el.getAttribute("hour").getValue()).intValue() == hh 
+	            && new Integer(el.getAttribute("min").getValue()).intValue() == mm;
 	}
 
 	public static void removeEvent(CalendarDate date, int hh, int mm) {
@@ -246,7 +248,7 @@ public class EventsManager {
 			d.getElement().removeChild(getEvent(date, hh, mm).getContent());
 	}
 
-	public static void removeEvent(Event ev) {
+	public static void removeEvent(IEvent ev) {
 		ParentNode parent = ev.getContent().getParent();
 		parent.removeChild(ev.getContent());
 	}
